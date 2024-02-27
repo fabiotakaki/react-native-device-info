@@ -33,10 +33,10 @@ import android.text.TextUtils;
 import android.app.ActivityManager;
 import android.hardware.Camera;
 import android.hardware.camera2.CameraManager;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -1259,9 +1259,15 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
     return false;
   }
 
+  private boolean hasTelephony() {
+    PackageManager packageManager = this.getReactApplicationContext().getPackageManager();
+    boolean isSupport = packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY);
+    return isSupport;
+  }
+
   private boolean checkTelephony() {
     if (ContextCompat.checkSelfPermission(this.getReactApplicationContext(), Manifest.permission.READ_PHONE_STATE)
-            == PackageManager.PERMISSION_GRANTED && this.isTelephony && hasTelephony()) {
+            == PackageManager.PERMISSION_GRANTED && hasTelephony()) {
       return hasEmuPhoneNumber()
               || hasEmuDeviceId()
               || hasEmuImsi()
