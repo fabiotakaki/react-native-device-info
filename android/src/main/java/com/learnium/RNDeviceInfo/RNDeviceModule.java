@@ -338,7 +338,7 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
             || "google_sdk".equals(Build.PRODUCT)
             || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")
             || this.hasKeyboard("memuime"))
-            || this.hasKeyboard("player input method"));
+            || this.hasKeyboard("player input method");
   }
 
   @ReactMethod(isBlockingSynchronousMethod = true)
