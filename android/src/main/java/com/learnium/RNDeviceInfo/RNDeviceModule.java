@@ -338,6 +338,10 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
             || "google_sdk".equals(Build.PRODUCT)
             || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")
             || this.hasKeyboard("memuime"))
+            || Build.HARDWARE.toLowerCase(Locale.ROOT).contains("vbox")
+            || Build.MANUFACTURER.toLowerCase(Locale.ROOT).contains("unknown")
+            || Build.MANUFACTURER.toLowerCase(Locale.ROOT).contains("nox")
+            || Build.getRadioVersion() == null
             || this.hasKeyboard("player input method");
   }
 
