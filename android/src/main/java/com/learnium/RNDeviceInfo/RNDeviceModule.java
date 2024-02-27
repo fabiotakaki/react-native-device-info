@@ -88,6 +88,58 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
   private static String BATTERY_LEVEL= "batteryLevel";
   private static String LOW_POWER_MODE = "lowPowerMode";
 
+  private static final String[] EMU_DEVICE_IDS = {
+      "000000000000000",
+      "e21833235b6eef10",
+      "012345678912345"
+  };
+
+
+  private static final String[] EMU_IMSI_IDS = {
+      "310260000000000"
+  };
+
+  private static final String[] GENY_FILES = {
+      "/dev/socket/genyd",
+      "/dev/socket/baseband_genyd"
+  };
+
+  private static final String[] ANDY_FILES = {
+      "fstab.andy",
+      "ueventd.andy.rc"
+  };
+
+  private static final String[] NOX_FILES = {
+      "fstab.nox",
+      "init.nox.rc",
+      "ueventd.nox.rc"
+  };
+
+  private static final String[] QEMU_DRIVERS = {"goldfish"};
+
+  private static final String[] PIPES = {
+      "/dev/socket/qemud",
+      "/dev/qemu_pipe"
+  };
+
+  //phone number is prefix +1555521 plus emulator suffix 5554, 5556... etc.
+  private static final String[] EMU_PHONE_NUMBERS = {
+      "15555215554", "15555215556", "15555215558", "15555215560", "15555215562", "15555215564",
+      "15555215566", "15555215568", "15555215570", "15555215572", "15555215574", "15555215576",
+      "15555215578", "15555215580", "15555215582", "15555215584"
+  };
+
+  private static final String[] X86_FILES = {
+      "ueventd.android_x86.rc",
+      "x86.prop",
+      "ueventd.ttVM_x86.rc",
+      "init.ttVM_x86.rc",
+      "fstab.ttVM_x86",
+      "fstab.vbox86",
+      "init.vbox86.rc",
+      "ueventd.vbox86.rc"
+  };
+
   public RNDeviceModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.deviceTypeResolver = new DeviceTypeResolver(reactContext);
@@ -238,7 +290,7 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void isEmulator(Promise p) {
-    p.resolve(isEmulatorSync());
+    p.resolve(isEmulatorSync() && checkAdvanced());
   }
 
   @SuppressLint("HardwareIds")
@@ -266,6 +318,12 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
             || Build.HARDWARE.toLowerCase(Locale.ROOT).contains("nox")
             || Build.PRODUCT.toLowerCase(Locale.ROOT).contains("nox")
             || Build.SERIAL.toLowerCase(Locale.ROOT).contains("nox")
+            || Build.ID.contains("FRF91")
+            || Build.HARDWARE.contains("ranchu")
+            || Build.USER.contains("android-build")
+            || Build.TAGS.contains("test-keys")
+            || Build.SERIAL == null
+            || "google_sdk".equals(Build.PRODUCT)
             || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")
             || this.hasKeyboard("memuime"));
   }
@@ -1052,4 +1110,153 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
     }
     return false;
   }
+
+  private boolean checkAdvanced() {
+    boolean isTelephony = checkTelephony();
+    boolean isGeny = checkFiles(GENY_FILES,"Geny");
+    boolean isAndy = checkFiles(ANDY_FILES,"Andy");
+    boolean isNox = checkFiles(NOX_FILES,"Nox");
+    boolean isQEmu = checkQEmuDrivers();
+    boolean isPipes = checkFiles(PIPES,"Pipes");
+    boolean isQEmuX86 = checkFiles(X86_FILES,"X86");
+
+    boolean result = isTelephony
+            || isGeny
+            || isAndy
+            || isNox
+            || isQEmu
+            || isPipes
+            || checkEth0Interface()
+            || isQEmuX86;
+    return result;
+  }
+
+  private static boolean checkEth0Interface() {
+    try {
+      for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements(); ) {
+        NetworkInterface intf = en.nextElement();
+        if (intf.getName().equals("eth0"))
+          return true;
+      }
+    } catch (SocketException ex) {
+    }
+    return false;
+  }
+
+  private boolean checkFiles(String[] targets, String type) {
+    for (String pipe : targets) {
+      File qemu_file = new File(pipe);
+      if (qemu_file.exists()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean checkQEmuDrivers() {
+    for (File drivers_file : new File[]{new File("/proc/tty/drivers"), new File("/proc/cpuinfo")}) {
+      if (drivers_file.exists() && drivers_file.canRead()) {
+        byte[] data = new byte[1024];
+        try {
+          InputStream is = new FileInputStream(drivers_file);
+          is.read(data);
+          is.close();
+        } catch (Exception exception) {
+          exception.printStackTrace();
+        }
+
+        String driver_data = new String(data);
+        for (String known_qemu_driver : QEMU_DRIVERS) {
+          if (driver_data.contains(known_qemu_driver)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /*
+    Regions of methods to validate if has those properties specific from emulators
+    Those as Emu, NoxPlayer, Bluestacks, etc.. This checking methods required some
+    Additional phone permissions as READ_SMS, READ_PHONE_NUMBERS, READ_PHONE_STATE
+    Necessary to effectively check those program that emulates Android OS, to prevent
+    or blocking then base upon this methods checking
+  */
+  private boolean hasEmuPhoneNumber() {
+    TelephonyManager telephonyManager =
+            (TelephonyManager) reactContext.getSystemService(Context.TELEPHONY_SERVICE);
+
+    if (ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED
+            && ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.READ_PHONE_NUMBERS) != PackageManager.PERMISSION_GRANTED
+            && ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+
+      @SuppressLint({"HardwareIds", "MissingPermission"}) String emuPhoneNumber = telephonyManager.getLine1Number();
+
+      for (String number : EMU_PHONE_NUMBERS) {
+        if (number.equalsIgnoreCase(emuPhoneNumber)) {
+          return true;
+        }
+
+      }
+    }
+
+    return false;
+  }
+
+  private boolean hasEmuImsi() {
+    TelephonyManager telephonyManager =
+            (TelephonyManager) reactContext.getSystemService(Context.TELEPHONY_SERVICE);
+    if (ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+      @SuppressLint({"HardwareIds", "MissingPermission"}) String imsi = telephonyManager.getSubscriberId();
+
+      for (String known_imsi : EMU_IMSI_IDS) {
+        if (known_imsi.equalsIgnoreCase(imsi)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private boolean hasEmuOperatorName() {
+    String emuOperatorName = ((TelephonyManager)
+            reactContext.getSystemService(Context.TELEPHONY_SERVICE)).getNetworkOperatorName();
+    if (emuOperatorName.equalsIgnoreCase("android")) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean hasEmuDeviceId() {
+    TelephonyManager telephonyManager =
+            (TelephonyManager) reactContext.getSystemService(Context.TELEPHONY_SERVICE);
+
+    if (ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+      @SuppressLint({"HardwareIds", "MissingPermission"}) String deviceId = telephonyManager.getDeviceId();
+
+      for (String known_deviceId : EMU_DEVICE_IDS) {
+        if (known_deviceId.equalsIgnoreCase(deviceId)) {
+          return true;
+        }
+
+      }
+    }
+
+    return false;
+  }
+
+  private boolean checkTelephony() {
+    if (ContextCompat.checkSelfPermission(reactContext, Manifest.permission.READ_PHONE_STATE)
+            == PackageManager.PERMISSION_GRANTED && this.isTelephony && hasTelephony()) {
+      return hasEmuPhoneNumber()
+              || hasEmuDeviceId()
+              || hasEmuImsi()
+              || hasEmuOperatorName();
+    }
+    return false;
+  }
+
+
 }
