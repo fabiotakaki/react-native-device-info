@@ -33,6 +33,8 @@ import android.text.TextUtils;
 import android.app.ActivityManager;
 import android.hardware.Camera;
 import android.hardware.camera2.CameraManager;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 
 import androidx.annotation.Nullable;
 
@@ -1195,11 +1197,11 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
   */
   private boolean hasEmuPhoneNumber() {
     TelephonyManager telephonyManager =
-            (TelephonyManager) reactContext.getSystemService(Context.TELEPHONY_SERVICE);
+            (TelephonyManager) this.getReactApplicationContext().getSystemService(Context.TELEPHONY_SERVICE);
 
-    if (ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED
-            && ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.READ_PHONE_NUMBERS) != PackageManager.PERMISSION_GRANTED
-            && ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+    if (ActivityCompat.checkSelfPermission(this.getReactApplicationContext(), Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED
+            && ActivityCompat.checkSelfPermission(this.getReactApplicationContext(), Manifest.permission.READ_PHONE_NUMBERS) != PackageManager.PERMISSION_GRANTED
+            && ActivityCompat.checkSelfPermission(this.getReactApplicationContext(), Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
 
       @SuppressLint({"HardwareIds", "MissingPermission"}) String emuPhoneNumber = telephonyManager.getLine1Number();
 
@@ -1216,8 +1218,8 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
 
   private boolean hasEmuImsi() {
     TelephonyManager telephonyManager =
-            (TelephonyManager) reactContext.getSystemService(Context.TELEPHONY_SERVICE);
-    if (ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            (TelephonyManager) this.getReactApplicationContext().getSystemService(Context.TELEPHONY_SERVICE);
+    if (ActivityCompat.checkSelfPermission(this.getReactApplicationContext(), Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
       @SuppressLint({"HardwareIds", "MissingPermission"}) String imsi = telephonyManager.getSubscriberId();
 
       for (String known_imsi : EMU_IMSI_IDS) {
@@ -1232,7 +1234,7 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
 
   private boolean hasEmuOperatorName() {
     String emuOperatorName = ((TelephonyManager)
-            reactContext.getSystemService(Context.TELEPHONY_SERVICE)).getNetworkOperatorName();
+      this.getReactApplicationContext().getSystemService(Context.TELEPHONY_SERVICE)).getNetworkOperatorName();
     if (emuOperatorName.equalsIgnoreCase("android")) {
       return true;
     }
@@ -1241,9 +1243,9 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
 
   private boolean hasEmuDeviceId() {
     TelephonyManager telephonyManager =
-            (TelephonyManager) reactContext.getSystemService(Context.TELEPHONY_SERVICE);
+            (TelephonyManager) this.getReactApplicationContext().getSystemService(Context.TELEPHONY_SERVICE);
 
-    if (ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+    if (ActivityCompat.checkSelfPermission(this.getReactApplicationContext(), Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
       @SuppressLint({"HardwareIds", "MissingPermission"}) String deviceId = telephonyManager.getDeviceId();
 
       for (String known_deviceId : EMU_DEVICE_IDS) {
@@ -1258,7 +1260,7 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
   }
 
   private boolean checkTelephony() {
-    if (ContextCompat.checkSelfPermission(reactContext, Manifest.permission.READ_PHONE_STATE)
+    if (ContextCompat.checkSelfPermission(this.getReactApplicationContext(), Manifest.permission.READ_PHONE_STATE)
             == PackageManager.PERMISSION_GRANTED && this.isTelephony && hasTelephony()) {
       return hasEmuPhoneNumber()
               || hasEmuDeviceId()
