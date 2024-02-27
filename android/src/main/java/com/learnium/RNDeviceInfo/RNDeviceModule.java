@@ -302,7 +302,7 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void isEmulator(Promise p) {
-    p.resolve(isEmulatorSync() && checkAdvanced());
+    p.resolve(isEmulatorSync() || checkAdvanced());
   }
 
   @SuppressLint("HardwareIds")
