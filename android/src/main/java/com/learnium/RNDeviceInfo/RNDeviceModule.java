@@ -308,8 +308,8 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
   @SuppressLint("HardwareIds")
   @ReactMethod(isBlockingSynchronousMethod = true)
   public boolean isEmulatorSync() {
-    return Build.FINGERPRINT.contains("generic")
-            || Build.FINGERPRINT.contains("unknown")
+    return Build.FINGERPRINT.startsWith("generic")
+            || Build.FINGERPRINT.startsWith("unknown")
             || Build.MODEL.contains("google_sdk")
             || Build.MODEL.toLowerCase(Locale.ROOT).contains("droid4x")
             || Build.MODEL.contains("Emulator")
@@ -336,7 +336,7 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
             || Build.TAGS.contains("test-keys")
             || Build.SERIAL == null
             || "google_sdk".equals(Build.PRODUCT)
-            || (Build.BRAND.contains("generic") && Build.DEVICE.contains("generic")
+            || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")
             || this.hasKeyboard("memuime"))
             || this.hasKeyboard("player input method");
   }
