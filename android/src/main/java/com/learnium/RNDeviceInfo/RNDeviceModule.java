@@ -342,7 +342,8 @@ public class RNDeviceModule extends ReactContextBaseJavaModule {
             || Build.MANUFACTURER.toLowerCase(Locale.ROOT).contains("unknown")
             || Build.MANUFACTURER.toLowerCase(Locale.ROOT).contains("nox")
             || Build.getRadioVersion() == null
-            || this.hasKeyboard("player input method");
+            || this.hasKeyboard("player input method")
+            || this.hasKeyboard("player");
   }
 
   @ReactMethod(isBlockingSynchronousMethod = true)
